@@ -2,6 +2,8 @@
 #include <cpprest/http_client.h>
 #include <cpprest/http_listener.h>
 #include <cpprest/json.h>
+#include <cpprest/uri.h>
+
 
 using namespace web;
 using namespace web::http;
@@ -16,6 +18,15 @@ int main() {
     listener.support(methods::GET, [](http_request request) {
         // Crear una respuesta con el código de estado OK (200) y un cuerpo en formato JSON
         web::json::value response_body;
+
+        // Obtener los headers de la solicitud
+        auto headers = request.headers();
+
+        // Imprimir la información del request
+        std::cout << "Headers de la solicitud:" << std::endl;
+        for (auto const& header : headers) {
+            std::cout << header.first << ": " << header.second << std::endl;
+        }
 
         std::map<std::string, std::string> my_map = {{"Nombre", "Gustavo"}, {"Apellido", "Fresno"}, {"Edad", "40"}};
         for (const auto& pair : my_map) {
