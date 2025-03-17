@@ -1,61 +1,86 @@
-# Ejemplo de Servicio API REST en C++
+## C++ REST SDK (cpprestsdk)
 
-Este repositorio contiene un ejemplo de cómo crear un servicio API REST en C++ utilizando C++ REST SDK.
+### ¿Qué es cpprestsdk?
+C++ REST SDK (`cpprestsdk`) es una biblioteca desarrollada por Microsoft para facilitar la construcción de aplicaciones cliente-servidor basadas en REST utilizando C++. Permite realizar solicitudes HTTP, manejar JSON y crear servidores REST de manera eficiente.
 
-## Descripción del código
+### Instalación
 
-El archivo `RestService.cpp` contiene un programa que demuestra la creación de un servicio API REST en C++ utilizando C++ REST SDK. Aquí hay una breve explicación del código:
-
-- Se crea un `http_listener` en la dirección `http://0.0.0.0:8080/test`, que escucha las solicitudes en el puerto 8080 y en el endpoint `/test`.
-- Se manejan las solicitudes GET en el endpoint `/test` utilizando una función lambda. En este caso, se crea una respuesta con un cuerpo en formato JSON que contiene información ficticia (nombre, apellido y edad).
-- El servicio se inicia llamando al método `open()` del listener y se cierra cuando se recibe una entrada por consola.
-
-## Cómo compilar y ejecutar el código
-
-Para compilar y ejecutar el programa, necesitarás tener instalado C++ REST SDK. Sigue estos pasos:
-
-1. Asegúrate de tener un compilador de C++ instalado en tu sistema.
-2. Instala C++ REST SDK siguiendo las instrucciones en su [página oficial](https://github.com/microsoft/cpprestsdk).
-3. Coloca el archivo `RestService.cpp` en un directorio.
-4. Abre una terminal y navega hasta el directorio que contiene el archivo.
-5. Compila el código ejecutando el siguiente comando:
-
-   ```
-    g++ -o RestService RestService.cpp -lboost_system -lcrypto -lssl -lcpprest
-   ```
-6. Una vez compilado, ejecuta el programa con el siguiente comando:
-
-   ```
-    ./RestService
-   ```
-
-
-Esto iniciará el servicio y lo dejará escuchando en el puerto 8080.
-
-## Ejemplo de llamada al servicio utilizando cURL
-
-Puedes probar el servicio haciendo una solicitud GET utilizando cURL. Aquí tienes un ejemplo de cómo hacerlo:
-
+#### En Linux (Ubuntu/Debian)
 ```bash
-curl -X GET http://localhost:8080/test
+sudo apt update
+sudo apt install libcpprest-dev
+```
 
-Esto debería devolver una respuesta JSON con información ficticia.
+#### En macOS
+```bash
+brew install cpprestsdk
+```
 
-## Cómo usar el Dockerfile
+#### En Windows
+Se puede instalar usando vcpkg:
+```powershell
+vcpkg install cpprestsdk
+```
 
-Para ejecutar el programa utilizando Docker, sigue estos pasos:
+### Uso Básico
 
-1. Asegúrate de tener Docker instalado en tu sistema.
-2. Coloca el archivo `ListExample.cpp` y el Dockerfile en un mismo directorio.
-3. Abre una terminal y navega hasta el directorio que contiene los archivos.
-4. Construye la imagen del contenedor ejecutando el siguiente comando:
+#### Crear un Servidor REST
+```cpp
+#include <cpprest/http_listener.h>
+#include <cpprest/json.h>
 
-   ```
-    docker build -t httprestserver .
-   ```
+using namespace web;
+using namespace web::http;
+using namespace web::http::experimental::listener;
 
-5. Una vez que se complete la construcción de la imagen, puedes ejecutar el programa en un contenedor Docker utilizando el siguiente comando:
+int main() {
+    http_listener listener(U("http://localhost:8080/api"));
 
-    ```
-    docker run -it --rm -p 8080:8080 httprestserver
-    ```
+    listener.support(methods::GET, [](http_request request) {
+        json::value response;
+        response[U("message")] = json::value::string(U("Hola desde C++ REST SDK"));
+        request.reply(status_codes::OK, response);
+    });
+
+    listener.open().wait();
+    std::cout << "Servidor escuchando en http://localhost:8080/api" << std::endl;
+    std::cin.get(); // Mantener el servidor en ejecución
+}
+```
+
+#### Realizar una Petición HTTP GET
+```cpp
+#include <cpprest/http_client.h>
+#include <cpprest/json.h>
+
+using namespace web;
+using namespace web::http;
+using namespace web::http::client;
+
+int main() {
+    http_client client(U("http://jsonplaceholder.typicode.com/posts/1"));
+    
+    client.request(methods::GET).then([](http_response response) {
+        if (response.status_code() == status_codes::OK) {
+            return response.extract_json();
+        }
+        return pplx::task_from_result(json::value());
+    }).then([](json::value jsonResponse) {
+        std::wcout << jsonResponse.serialize() << std::endl;
+    }).wait();
+
+    return 0;
+}
+```
+
+### Clases y Métodos Principales
+
+- `http_listener`: Para crear servidores REST y manejar solicitudes HTTP.
+- `http_client`: Para realizar solicitudes HTTP a servidores remotos.
+- `json::value`: Para manejar estructuras de datos JSON.
+- `methods`: Contiene métodos HTTP comunes (`GET`, `POST`, `PUT`, `DELETE`).
+- `status_codes`: Contiene códigos de respuesta HTTP (`OK`, `NotFound`, `BadRequest`, etc.).
+
+Para más información, consulta la documentación oficial: [cpprestsdk en GitHub](https://github.com/microsoft/cpprestsdk).
+
+---
